@@ -81,7 +81,6 @@ class lib_test extends advanced_testcase {
         $expected->userid = $user->id;
         $expected->content = $fakepost->message;
         $expected->pathnamehashes = array($fi->get_pathnamehash());
-        $this->assertEventLegacyData($expected, $event);
         $this->assertEventContextNotUsed($event);
     }
 
