@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 /** Include required files */
 require_once($CFG->libdir.'/filelib.php');
 require_once($CFG->dirroot.'/user/selector/lib.php');
+
+use core\cron;
 use mod_hsuforum\renderables\advanced_editor;
 /// CONSTANTS ///////////////////////////////////////////////////////////
 
@@ -229,11 +231,11 @@ function hsuforum_update_instance($forum, $mform) {
             hsuforum_add_discussion($discussion, null, $message);
 
             if (! $discussion = $DB->get_record('hsuforum_discussions', array('forum'=>$forum->id))) {
-                print_error('cannotadd', 'hsuforum');
+                throw new \moodle_exception('cannotadd', 'hsuforum');
             }
         }
         if (! $post = $DB->get_record('hsuforum_posts', array('id'=>$discussion->firstpost))) {
-            print_error('cannotfindfirstpost', 'hsuforum');
+            throw new \moodle_exception('cannotfindfirstpost', 'hsuforum');
         }
 
         $cm         = get_coursemodule_from_instance('hsuforum', $forum->id);
@@ -609,7 +611,7 @@ function hsuforum_cron() {
             $userto->markposts     = array();
 
             // Set this so that the capabilities are cached, and environment matches receiving user.
-            \core\cron::setup_user($userto);
+            cron::setup_user($userto);
 
             // Reset the caches.
             foreach ($coursemodules as $forumid => $unused) {
@@ -673,7 +675,7 @@ function hsuforum_cron() {
                 // Note: If we want to check that userto and userfrom are not the same person this is probably the spot to do it.
 
                 // Setup global $COURSE properly - needed for roles and languages.
-                \core\cron::setup_user($userto, $course);
+                cron::setup_user($userto, $course);
 
                 // Fill caches.
                 if (!isset($userto->viewfullnames[$forum->id])) {
@@ -887,7 +889,7 @@ function hsuforum_cron() {
     unset($mailcount);
     unset($errorcount);
 
-    \core\cron::setup_user();
+    cron::setup_user();
 
     $sitetimezone = core_date::get_server_timezone();
 
@@ -976,7 +978,7 @@ function hsuforum_cron() {
 
                 core_php_time_limit::raise(120); // terminate if processing of any account takes longer than 2 minutes
 
-                \core\cron::setup_user();
+                cron::setup_user();
 
                 mtrace(get_string('processingdigest', 'hsuforum', $userid), '... ');
 
@@ -997,7 +999,7 @@ function hsuforum_cron() {
 
                 // Override the language and timezone of the "current" user, so that
                 // mail is customised for the receiver.
-                \core\cron::setup_user($userto);
+                cron::setup_user($userto);
 
                 $postsubject = get_string('digestmailsubject', 'hsuforum', format_string($site->shortname, true));
 
@@ -1021,7 +1023,7 @@ function hsuforum_cron() {
                     $cm         = $coursemodules[$forum->id];
 
                     //override language
-                    \core\cron::setup_user($userto, $course);
+                    cron::setup_user($userto, $course);
 
                     // Fill caches
                     if (!isset($userto->viewfullnames[$forum->id])) {
@@ -1200,7 +1202,7 @@ function hsuforum_cron() {
         $config->digestmailtimelast = $timenow;
     }
 
-    \core\cron::setup_user();
+    cron::setup_user();
 
     if (!empty($usermailcount)) {
         mtrace(get_string('digestsentusers', 'hsuforum', $usermailcount));
@@ -1305,7 +1307,7 @@ function hsuforum_user_complete($course, $user, $mod, $forum) {
     if ($posts = hsuforum_get_user_posts($forum->id, $user->id)) {
 
         if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $course->id)) {
-            print_error('invalidcoursemodule');
+            throw new \moodle_exception('invalidcoursemodule');
         }
         $discussions = hsuforum_get_user_involved_discussions($forum->id, $user->id);
 
@@ -2056,7 +2058,7 @@ function hsuforum_get_readable_forums($userid, $courseid=0, $excludeanonymous = 
     require_once($CFG->dirroot.'/course/lib.php');
 
     if (!$forummod = $DB->get_record('modules', array('name' => 'hsuforum'))) {
-        print_error('notinstalled', 'hsuforum');
+        throw new \moodle_exception('notinstalled', 'hsuforum');
     }
 
     $config = get_config('hsuforum');
@@ -2156,8 +2158,8 @@ function hsuforum_get_readable_forums($userid, $courseid=0, $excludeanonymous = 
  * @param string $extrasql
  * @return array|bool Array of posts found or false
  */
-function hsuforum_search_posts($searchterms, &$totalcount, $courseid=0, $limitfrom=0, $limitnum=50,
-                            $extrasql='') {
+function hsuforum_search_posts($searchterms, &$totalcount, $courseid = 0, $limitfrom = 0, $limitnum = 50,
+                            $extrasql = '') {
     global $CFG, $DB, $USER;
     require_once($CFG->libdir.'/searchlib.php');
 
@@ -3706,7 +3708,7 @@ function hsuforum_rating_validate($params) {
             throw new rating_exception('cannotfindgroup');//something is wrong
         }
         if (!empty($discussion->unread) && $discussion->unread !== '-') {
-            $replystring .= ' <span class="sep">/</span> <span class="unread">';
+            $replystring = ' <span class="sep">/</span> <span class="unread">';
             $unreadlink = new moodle_url($discussionlink, null, 'unread');
             if ($discussion->unread == 1) {
                 $replystring .= html_writer::link($unreadlink, get_string('unreadpostsone', 'hsuforum'));
@@ -4480,20 +4482,20 @@ function hsuforum_verify_and_delete_post($course, $cm, $forum, $modcontext, $dis
     // Check user capability to delete post.
     $timepassed = time() - $post->created;
     if (($timepassed > $CFG->maxeditingtime) && !has_capability('mod/hsuforum:deleteanypost', $modcontext)) {
-        print_error("cannotdeletepost", "hsuforum",
+        throw new \moodle_exception("cannotdeletepost", "hsuforum",
             hsuforum_go_back_to("discuss.php?d=$post->discussion"));
     }
     if ($post->totalscore) {
-        print_error('couldnotdeleteratings', 'rating',
+        throw new \moodle_exception('couldnotdeleteratings', 'rating',
             hsuforum_go_back_to("discuss.php?d=$post->discussion"));
     }
     if (hsuforum_count_replies($post) && !has_capability('mod/hsuforum:deleteanypost', $modcontext)) {
-        print_error("couldnotdeletereplies", "hsuforum",
+        throw new \moodle_exception("couldnotdeletereplies", "hsuforum",
             hsuforum_go_back_to("discuss.php?d=$post->discussion"));
     }
     if (!$post->parent) { // post is a discussion topic as well, so delete discussion
         if ($forum->type == 'single') {
-            print_error('cannnotdeletesinglediscussion', 'hsuforum',
+            throw new \moodle_exception('cannnotdeletesinglediscussion', 'hsuforum',
                 hsuforum_go_back_to("discuss.php?d=$post->discussion"));
         }
         hsuforum_delete_discussion($discussion, false, $course, $cm, $forum);
@@ -4514,7 +4516,7 @@ function hsuforum_verify_and_delete_post($course, $cm, $forum, $modcontext, $dis
 
     }
     if (!hsuforum_delete_post($post, has_capability('mod/hsuforum:deleteanypost', $modcontext), $course, $cm, $forum)) {
-        print_error('errorwhiledelete', 'hsuforum');
+        throw new \moodle_exception('errorwhiledelete', 'hsuforum');
     }
     if ($forum->type == 'single') {
         // Single discussion forums are an exception. We show
@@ -5178,7 +5180,7 @@ function hsuforum_user_can_post_discussion($forum, $currentgroup=null, $unused=-
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
         if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $forum->course)) {
-            print_error('invalidcoursemodule');
+            throw new \moodle_exception('invalidcoursemodule');
         }
     }
 
@@ -5264,14 +5266,14 @@ function hsuforum_user_can_post($forum, $discussion, $user=NULL, $cm=NULL, $cour
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
         if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $forum->course)) {
-            print_error('invalidcoursemodule');
+            throw new \moodle_exception('invalidcoursemodule');
         }
     }
 
     if (!$course) {
         debugging('missing course', DEBUG_DEVELOPER);
         if (!$course = $DB->get_record('course', array('id' => $forum->course))) {
-            print_error('invalidcourseid');
+            throw new \moodle_exception('invalidcourseid');
         }
     }
 
@@ -5403,7 +5405,7 @@ function hsuforum_user_can_see_discussion($forum, $discussion, $context, $user=N
         }
     }
     if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $forum->course)) {
-        print_error('invalidcoursemodule');
+        throw new \moodle_exception('invalidcoursemodule');
     }
 
     if (!has_capability('mod/hsuforum:viewdiscussion', $context)) {
@@ -5467,7 +5469,7 @@ function hsuforum_user_can_see_post($forum, $discussion, $post, $user=NULL, $cm=
     if (!$cm) {
         debugging('missing cm', DEBUG_DEVELOPER);
         if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $forum->course)) {
-            print_error('invalidcoursemodule');
+            throw new \moodle_exception('invalidcoursemodule');
         }
     }
 
@@ -5549,7 +5551,7 @@ function hsuforum_print_latest_discussions($course, $forum, $maxdiscussions=-1, 
 
     if (!$cm) {
         if (!$cm = get_coursemodule_from_instance('hsuforum', $forum->id, $forum->course)) {
-            print_error('invalidcoursemodule');
+            throw new \moodle_exception('invalidcoursemodule');
         }
     }
     $context = context_module::instance($cm->id);
@@ -6758,7 +6760,7 @@ function hsuforum_check_throttling($forum, $cm = null) {
  */
 function hsuforum_check_blocking_threshold($thresholdwarning) {
     if (!empty($thresholdwarning) && !$thresholdwarning->canpost) {
-        print_error($thresholdwarning->errorcode,
+        throw new \moodle_exception($thresholdwarning->errorcode,
                     $thresholdwarning->module,
                     $thresholdwarning->link,
                     $thresholdwarning->additional);
@@ -7694,7 +7696,7 @@ function hsuforum_get_posts_by_user($user, array $courses, $musthaveaccess = fal
             if (!is_viewing($coursecontext, $user) && !is_enrolled($coursecontext, $user)) {
                 // Need to have full access to a course to see the rest of own info
                 if ($musthaveaccess) {
-                    print_error('errorenrolmentrequired', 'hsuforum');
+                    throw new \moodle_exception('errorenrolmentrequired', 'hsuforum');
                 }
                 continue;
             }
@@ -7703,7 +7705,7 @@ function hsuforum_get_posts_by_user($user, array $courses, $musthaveaccess = fal
             // if they don't we immediately have a problem.
             if (!can_access_course($course)) {
                 if ($musthaveaccess) {
-                    print_error('errorenrolmentrequired', 'hsuforum');
+                    throw new \moodle_exception('errorenrolmentrequired', 'hsuforum');
                 }
                 continue;
             }
@@ -7733,7 +7735,7 @@ function hsuforum_get_posts_by_user($user, array $courses, $musthaveaccess = fal
                     // But they're not... if it was a specific course throw an error otherwise
                     // just skip this course so that it is not searched.
                     if ($musthaveaccess) {
-                        print_error("groupnotamember", '', $CFG->wwwroot."/course/view.php?id=$course->id");
+                        throw new \moodle_exception("groupnotamember", '', $CFG->wwwroot."/course/view.php?id=$course->id");
                     }
                     continue;
                 }
@@ -7753,7 +7755,7 @@ function hsuforum_get_posts_by_user($user, array $courses, $musthaveaccess = fal
         // user doesn't have access to any courses is which the requested user has posted.
         // Although we do know at this point that the requested user has posts.
         if ($musthaveaccess) {
-            print_error('permissiondenied');
+            throw new \moodle_exception('permissiondenied');
         } else {
             return $return;
         }
