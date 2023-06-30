@@ -43,12 +43,9 @@ global $CFG;
 require_once($CFG->dirroot . '/webservice/tests/helpers.php');
 require_once($CFG->dirroot . '/mod/hsuforum/lib.php');
 
-<<<<<<< HEAD
-=======
 /**
  * @runTestsInSeparateProcesses
  */
->>>>>>> sandbox
 class externallib_test extends externallib_advanced_testcase {
 
     /**
