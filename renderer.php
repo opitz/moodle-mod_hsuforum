@@ -625,6 +625,8 @@ class mod_hsuforum_renderer extends \core\output\plugin_renderer_base {
         }
 
 
+        $arialabeldiscussion = get_string('discussionforum', 'hsuforum', $d->subject);
+
         $threadheader = <<<HTML
         <div class="hsuforum-thread-header">
             <div class="hsuforum-thread-title">
