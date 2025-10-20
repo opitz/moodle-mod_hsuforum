@@ -50,11 +50,11 @@ class backup_hsuforum_activity_test extends advanced_testcase {
      *
      * @dataProvider encode_content_links_provider
      */
-    public function test_encode_content_links($content, $expectation) {
-        $this->assertEquals($expectation, backup_hsuforum_activity_task::encode_content_links($content));
+    public static function test_encode_content_links($content, $expectation) {
+        self::assertEquals($expectation, backup_hsuforum_activity_task::encode_content_links($content));
     }
 
-    public function encode_content_links_provider() {
+    public static function encode_content_links_provider() {
         global $CFG;
         $altwwwroot = 'http://invalid.example.com/';
         return [
