@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 /** Include required files */
 require_once($CFG->libdir.'/filelib.php');
 require_once($CFG->dirroot.'/user/selector/lib.php');
+
+use core\url;
 use mod_hsuforum\renderables\advanced_editor;
 /// CONSTANTS ///////////////////////////////////////////////////////////
 
@@ -3716,7 +3718,7 @@ function hsuforum_rating_validate($params) {
             throw new rating_exception('cannotfindgroup');//something is wrong
         }
         if (!empty($discussion->unread) && $discussion->unread !== '-') {
-            $replystring .= ' <span class="sep">/</span> <span class="unread">';
+            $replystring = ' <span class="sep">/</span> <span class="unread">';
             $unreadlink = new \core\url($discussionlink, null, 'unread');
             if ($discussion->unread == 1) {
                 $replystring .= \core\output\html_writer::link($unreadlink, get_string('unreadpostsone', 'hsuforum'));
@@ -3942,7 +3944,15 @@ function hsuforum_print_attachments($post, $cm, $type) {
             $filename = $file->get_filename();
             $mimetype = $file->get_mimetype();
             $iconimage = $OUTPUT->pix_icon(file_file_icon($file), get_mimetype_description($file), 'moodle', array('class' => 'icon'));
-            $path = file_encode_url($CFG->wwwroot.'/pluginfile.php', '/'.$context->id.'/mod_hsuforum/attachment/'.$post->id.'/'.$filename);
+//            $path = file_encode_url($CFG->wwwroot.'/pluginfile.php', '/'.$context->id.'/mod_hsuforum/attachment/'.$post->id.'/'.$filename);
+            $path = url::make_pluginfile_url(
+                $context->id,
+                'mod_hsuforum',
+                'attachment',
+                $post->id,
+                '/',
+                $filename
+            )->out(false);
 
             if ($type == 'html') {
                 $output .= "<a href=\"$path\">$iconimage</a> ";
