@@ -2826,7 +2826,108 @@ class lib_test extends \advanced_testcase {
         hsuforum_is_author_hidden($post, $forum);
     }
 
-    public static function hsuforum_get_unmailed_posts_provider() {
+    public static function hsuforum_get_unmailed_posts_provider(): array {
+        return [
+            'Untimed discussion; Single post; maxeditingtime not expired' => [
+                [],         // This is: $discussion.
+                false,      // This is: $timedposts.
+                0,          // This is: $postcount.
+                0,          // This is: $replycount.
+            ],
+            'Untimed discussion; Single post; maxeditingtime expired' => [
+                ['timecreated' => -DAYSECS],
+                false,
+                1,
+                2,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime not expired' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => 0],
+                true,
+                0,
+                0,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS],
+                true,
+                1,
+                2,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend not reached' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS, 'timeend' => +DAYSECS],
+                true,
+                1,
+                2,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend passed' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS, 'timeend' => -HOURSECS],
+                true,
+                0,
+                0,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timeend not reached' => [
+                ['timecreated' => -WEEKSECS, 'timeend' => +DAYSECS],
+                true,
+                0,
+                1,
+            ],
+            'Timed discussion; Single post; Posted 1 week ago; timeend passed' => [
+                ['timecreated' => -WEEKSECS, 'timeend' => -DAYSECS],
+                true,
+                0,
+                0,
+            ],
+            'Previously mailed; Untimed discussion; Single post; maxeditingtime not expired' => [
+                ['mailed' => 1],
+                false,
+                0,
+                0,
+            ],
+            'Previously mailed; Untimed discussion; Single post; maxeditingtime expired' => [
+                ['timecreated' => -DAYSECS, 'mailed' => 1],
+                false,
+                0,
+                1,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime not expired' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => 0, 'mailed' => 1],
+                true,
+                0,
+                0,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS, 'mailed' => 1],
+                true,
+                0,
+                1,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend not reached' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS, 'timeend' => +DAYSECS, 'mailed' => 1],
+                true,
+                0,
+                1,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timestart maxeditingtime expired; timeend passed' => [
+                ['timecreated' => -WEEKSECS, 'timestart' => -DAYSECS, 'timeend' => -HOURSECS, 'mailed' => 1],
+                true,
+                0,
+                0,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timeend not reached' => [
+                ['timecreated' => -WEEKSECS, 'timeend' => +DAYSECS, 'mailed' => 1],
+                true,
+                0,
+                1,
+            ],
+            'Previously mailed; Timed discussion; Single post; Posted 1 week ago; timeend passed' => [
+                ['timecreated' => -WEEKSECS, 'timeend' => -DAYSECS, 'mailed' => 1],
+                true,
+                0,
+                0,
+            ],
+        ];
+    }
+
+    public static function hsuforum_get_unmailed_posts_provider0() {
         return [
             'Untimed discussion; Single post; maxeditingtime not expired' => [
                 'discussion'        => [
@@ -3000,7 +3101,46 @@ class lib_test extends \advanced_testcase {
      *
      * @return  array
      */
-    public static function hsuforum_discussion_is_locked_provider() {
+    public static function hsuforum_discussion_is_locked_provider(): array {
+        return [
+            'Unlocked: lockdiscussionafter is unset' => [
+                (object) [],                        // $forum
+                (object) [],                        // $discussion
+                false,                              // $expected
+            ],
+            'Unlocked: lockdiscussionafter is false' => [
+                (object) ['lockdiscussionafter' => false],
+                (object) [],
+                false,
+            ],
+            'Unlocked: lockdiscussionafter is null' => [
+                (object) ['lockdiscussionafter' => null],
+                (object) [],
+                false,
+            ],
+            'Unlocked: lockdiscussionafter is set; forum is of type single; post is recent' => [
+                (object) ['lockdiscussionafter' => DAYSECS, 'type' => 'single'],
+                (object) ['timemodified' => time()],
+                false,
+            ],
+            'Unlocked: lockdiscussionafter is set; forum is of type single; post is old' => [
+                (object) ['lockdiscussionafter' => MINSECS, 'type' => 'single'],
+                (object) ['timemodified' => time() - DAYSECS],
+                false,
+            ],
+            'Unlocked: lockdiscussionafter is set; forum is of type eachuser; post is recent' => [
+                (object) ['lockdiscussionafter' => DAYSECS, 'type' => 'eachuser'],
+                (object) ['timemodified' => time()],
+                false,
+            ],
+            'Locked: lockdiscussionafter is set; forum is of type eachuser; post is old' => [
+                (object) ['lockdiscussionafter' => MINSECS, 'type' => 'eachuser'],
+                (object) ['timemodified' => time() - DAYSECS],
+                true,
+            ],
+        ];
+    }
+    public static function hsuforum_discussion_is_locked_provider0() {
         return [
             'Unlocked: lockdiscussionafter is unset' => [
                 (object) [],
