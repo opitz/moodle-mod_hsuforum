@@ -2318,33 +2318,24 @@ class lib_test extends \advanced_testcase {
     }
 
     public static function print_overview_timed_provider() {
-        return array(
-            'timestart_past' => array(
-                'discussionconfig' => array(
-                    'timestartmodifier' => -86000,
-                ),
-                'hasresult'         => true,
-            ),
-            'timestart_future' => array(
-                'discussionconfig' => array(
-                    'timestartmodifier' => 86000,
-                ),
-                'hasresult'         => false,
-            ),
-            'timeend_past' => array(
-                'discussionconfig' => array(
-                    'timeendmodifier'   => -86000,
-                ),
-                'hasresult'         => false,
-            ),
-            'timeend_future' => array(
-                'discussionconfig' => array(
-                    'timeendmodifier'   => 86000,
-                ),
-                'hasresult'         => true,
-            ),
-        );
-    }
+        return [
+            'timestart_past' => [
+                ['timestartmodifier' => -86000],
+                true,
+            ],
+            'timestart_future' => [
+                ['timestartmodifier' => 86000],
+                false,
+            ],
+            'timeend_past' => [
+                ['timeendmodifier' => -86000],
+                false,
+            ],
+            'timeend_future' => [
+                ['timeendmodifier' => 86000],
+                true,
+            ],
+        ];    }
 
     /**
      * Test test_pinned_discussion_with_group.
